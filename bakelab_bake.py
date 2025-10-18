@@ -871,7 +871,9 @@ class Baker(Operator):
 
         if event.type == 'TIMER':
             if context.scene.BakeLabProps.bake_state == 'BAKING':
-                context.area.tag_redraw() # Update UI
+                # Check if the area is valid and if it's the correct area type
+                if context.area and context.area.type == 'VIEW_3D':
+                    context.area.tag_redraw() # Update UI
             result = next(self.BakeCrt)
             if result == -1:
                 self.cancel(context)

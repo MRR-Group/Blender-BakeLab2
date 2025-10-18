@@ -407,7 +407,9 @@ class BakeLabAddMapItem(bpy.types.Operator):
         return wm.invoke_props_dialog(self)
     
     def execute(self,context):
-        context.area.tag_redraw()
+        # Check if the area is valid and if it's the correct area type
+        if context.area and context.area.type == 'VIEW_3D':
+            context.area.tag_redraw()
         item = context.scene.BakeLabMaps.add()
         
         item.type        = self.type
@@ -442,7 +444,9 @@ class BakeLabRemoveMapItem(bpy.types.Operator):
         return context.scene.BakeLabMaps
     
     def execute(self,context):
-        context.area.tag_redraw()
+        # Check if the area is valid and if it's the correct area type
+        if context.area and context.area.type == 'VIEW_3D':
+            context.area.tag_redraw()
         context.scene.BakeLabMaps.remove(context.scene.BakeLabMapIndex)
         context.scene.BakeLabMapIndex = max(context.scene.BakeLabMapIndex - 1,0)
         context.scene.BakeLabMapIndex = min(context.scene.BakeLabMapIndex, len(context.scene.BakeLabMaps))
@@ -468,7 +472,9 @@ class BakeLabShowPassPresets(Operator):
         )
     
     def execute(self,context):
-        context.area.tag_redraw()
+        # Check if the area is valid and if it's the correct area type
+        if context.area and context.area.type == 'VIEW_3D':
+            context.area.tag_redraw()
         scene = context.scene
         if scene.BakeLabMapIndex>=0 and scene.BakeLabMaps:
             item = scene.BakeLabMaps[scene.BakeLabMapIndex]
