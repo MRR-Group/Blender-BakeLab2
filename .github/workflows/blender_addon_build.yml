@@ -3,7 +3,7 @@ name: Blender Addon Build & Release
 on:
   push:
     branches:
-      - main
+      - master
 
 permissions:
   contents: write
