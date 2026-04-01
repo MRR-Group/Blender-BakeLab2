@@ -16,7 +16,7 @@ bl_info = {
     "author" : "Shahzod Boyxonov (specoolar@gmail.com)",
     "description" : "Bake textures easily",
     "blender" : (2, 81, 0),
-    "version" : (2, 0, 2),
+    "version" : (2, 0, 3),
     "location" : "View3D > Properties > BakeLab",
     "category" : "Baking"
 }
@@ -179,6 +179,11 @@ class BakeLabProperties(PropertyGroup):
     show_bake_settings : BoolProperty(name = '', default = False)
     show_map_settings  : BoolProperty(name = '', default = False)
     show_file_settings : BoolProperty(name = '', default = False)
+    auto_unwrap_apply_modifiers : BoolProperty(
+            name = 'Apply modifiers on unwrap',
+            description = 'Apply modifiers when running auto unwrap',
+            default = False
+        )
     map_preset : EnumProperty(
             name = 'Preset',
             items = (

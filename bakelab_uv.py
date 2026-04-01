@@ -104,7 +104,7 @@ class Unwrapper(Operator):
     )
     apply_modifiers  : BoolProperty(
         name = 'Apply Modifiers',
-        default = True
+        default = False
     )
     make_single_user  : BoolProperty(
         name = 'Make data single user',
@@ -281,6 +281,7 @@ class Unwrapper(Operator):
             self.unwrap_mode = 'ALL_TO_ONE'
         if props.bake_mode == 'TO_ACTIVE':
             self.unwrap_mode = 'ONLY_ACTIVE'
+        self.apply_modifiers = props.auto_unwrap_apply_modifiers
         self.make_single_user_view = True
         wm = context.window_manager
         return wm.invoke_props_dialog(self)
