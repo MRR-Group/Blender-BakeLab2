@@ -1,0 +1,28 @@
+name: Blender Addon Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:  # Enables manual triggering
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # Use ubuntu-latest or windows-latest as needed
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Blender Addon Build
+        uses: blenderkit/blender-addon-build@main
+        with:
+          name: 'Blender FastHenry'
+          name-suffix: 'none'
+          build-command: ''
+          build-location: './'
+          do-checkout: 'true'
+          exclude-files: '.git;.github;.gitignore;docs;README.md;demos'
