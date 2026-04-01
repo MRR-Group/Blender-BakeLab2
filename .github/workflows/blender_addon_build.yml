@@ -49,9 +49,10 @@ jobs:
     needs: build
     steps:
       - name: Blender Addon Release
-        uses: BlenderKit/blender-addon-release@main
+        uses: natapol2547/blender-addon-release@main
         with:
           artifact_name: ${{ github.event.repository.name }}
           release_name: BakeLab
           version: ${{ needs.build.outputs.version }}
           release_stage: gold
+          addon_folder_name: out
