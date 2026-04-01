@@ -18,6 +18,7 @@ from bpy.props import (
 
 from math import log2
 from os.path import abspath, join, exists
+from array import array
 
 from .bakelab_tools import (
     SelectObject,
@@ -379,6 +380,8 @@ class Baker(Operator):
             bake_type = 'UV'
         if m_type == 'Roughness':
             bake_type = 'ROUGHNESS'
+        if m_type == 'Smoothness':
+            bake_type = 'ROUGHNESS'
         if m_type == 'Emission':
             bake_type = 'EMIT'
         if m_type == 'Environment':
@@ -611,6 +614,35 @@ class Baker(Operator):
         if map.final_aa == 1:
             return
         img.scale(map.target_width, map.target_height)
+
+    def is_metallic_map(self, map):
+        if map.type != 'CustomPass':
+            return False
+        return 'metallic' in map.pass_name.casefold()
+
+    def invert_image_colors(self, img):
+        pixels = array('f', [0.0]) * len(img.pixels)
+        img.pixels.foreach_get(pixels)
+        for i in range(0, len(pixels), 4):
+            pixels[i] = 1.0 - pixels[i]
+            pixels[i + 1] = 1.0 - pixels[i + 1]
+            pixels[i + 2] = 1.0 - pixels[i + 2]
+        img.pixels.foreach_set(pixels)
+        img.update()
+
+    def pack_smoothness_into_metallic(self, metallic_img, smoothness_img):
+        if metallic_img.size[0] != smoothness_img.size[0] or \
+                metallic_img.size[1] != smoothness_img.size[1]:
+            self.report(type = {'WARNING'}, message = 'Smoothness map size mismatch, skip packing')
+            return
+        metal_pixels = array('f', [0.0]) * len(metallic_img.pixels)
+        smooth_pixels = array('f', [0.0]) * len(smoothness_img.pixels)
+        metallic_img.pixels.foreach_get(metal_pixels)
+        smoothness_img.pixels.foreach_get(smooth_pixels)
+        for i in range(0, len(metal_pixels), 4):
+            metal_pixels[i + 3] = smooth_pixels[i]
+        metallic_img.pixels.foreach_set(metal_pixels)
+        metallic_img.update()
     
     def UpdateDisplayStatus(self, props, obj, map, image):
         props.baking_obj_name = obj.name
@@ -628,6 +660,7 @@ class Baker(Operator):
         scene = context.scene
         render = scene.render
         props = scene.BakeLabProps
+        smoothness_cache = {}
         self.original_materials = []
         self.object_slots = []
         self.save_defaults(context)
@@ -683,6 +716,7 @@ class Baker(Operator):
                     if not map.enabled:
                         continue
                     props.baking_map_index += 1
+                    map_key = obj.name
                     
                     self.ReserveMaterials(obj)
                     bake_image = self.PrepareImage(context, map, {obj}, obj.name)
@@ -699,6 +733,19 @@ class Baker(Operator):
                     # }
 
                     self.down_scale(bake_image, props, map)
+                    if map.type == 'Smoothness':
+                        self.invert_image_colors(bake_image)
+                        if map.pack_smoothness:
+                            smoothness_cache[map_key] = bake_image
+                            self.RestoreMaterials()
+                            continue
+                    if self.is_metallic_map(map) and map_key in smoothness_cache:
+                        self.pack_smoothness_into_metallic(bake_image, smoothness_cache[map_key])
+                        try:
+                            bpy.data.images.remove(smoothness_cache[map_key])
+                        except:
+                            pass
+                        del smoothness_cache[map_key]
                     if props.save_or_pack == 'PACK':
                         bake_image.pack()
                     else:
@@ -737,6 +784,8 @@ class Baker(Operator):
                 if not map.enabled:
                     continue
                 props.baking_map_index += 1
+                map_key = props.global_image_name
+                skip_add = False
                 
                 if props.pre_join_mesh:
                     for obj in selected_objects:
@@ -758,6 +807,19 @@ class Baker(Operator):
                     self.RestoreMaterials()
 
                     self.down_scale(bake_image, props, map)
+                    if map.type == 'Smoothness':
+                        self.invert_image_colors(bake_image)
+                        if map.pack_smoothness:
+                            smoothness_cache[map_key] = bake_image
+                            skip_add = True
+                            continue
+                    if self.is_metallic_map(map) and map_key in smoothness_cache:
+                        self.pack_smoothness_into_metallic(bake_image, smoothness_cache[map_key])
+                        try:
+                            bpy.data.images.remove(smoothness_cache[map_key])
+                        except:
+                            pass
+                        del smoothness_cache[map_key]
                     if props.save_or_pack == 'PACK':
                         bake_image.pack()
                     else:
@@ -781,20 +843,35 @@ class Baker(Operator):
                             yield 1
                         # }
                         
-                        if props.save_or_pack == 'PACK':
-                            bake_image.pack()
-                        else:
-                            bake_image.save_render(bake_image.filepath)
+                        if not (map.type == 'Smoothness' and map.pack_smoothness):
+                            if props.save_or_pack == 'PACK':
+                                bake_image.pack()
+                            else:
+                                bake_image.save_render(bake_image.filepath)
                         
                         self.RestoreMaterials()
 
                     self.down_scale(bake_image, props, map)
+                    if map.type == 'Smoothness':
+                        self.invert_image_colors(bake_image)
+                        if map.pack_smoothness:
+                            smoothness_cache[map_key] = bake_image
+                            skip_add = True
+                            continue
+                    if self.is_metallic_map(map) and map_key in smoothness_cache:
+                        self.pack_smoothness_into_metallic(bake_image, smoothness_cache[map_key])
+                        try:
+                            bpy.data.images.remove(smoothness_cache[map_key])
+                        except:
+                            pass
+                        del smoothness_cache[map_key]
                     if props.save_or_pack == 'PACK':
                         bake_image.pack()
                     else:
                         bake_image.save_render(bake_image.filepath)
                     
-                baked_data.AddMap(map, bake_image) # Save baking data
+                if not skip_add:
+                    baked_data.AddMap(map, bake_image) # Save baking data
 
             if props.pre_join_mesh:
                 merged_data = merged_object.data
@@ -829,6 +906,7 @@ class Baker(Operator):
                 if not map.enabled:
                     continue
                 props.baking_map_index += 1
+                map_key = active_object.name
                 
                 for obj in selected_objects:
                     self.ReserveMaterials(obj)
@@ -854,6 +932,19 @@ class Baker(Operator):
                 # }
 
                 self.down_scale(bake_image, props, map)
+                if map.type == 'Smoothness':
+                    self.invert_image_colors(bake_image)
+                    if map.pack_smoothness:
+                        smoothness_cache[map_key] = bake_image
+                        self.RestoreMaterials()
+                        continue
+                if self.is_metallic_map(map) and map_key in smoothness_cache:
+                    self.pack_smoothness_into_metallic(bake_image, smoothness_cache[map_key])
+                    try:
+                        bpy.data.images.remove(smoothness_cache[map_key])
+                    except:
+                        pass
+                    del smoothness_cache[map_key]
                 if props.save_or_pack == 'PACK':
                     bake_image.pack()
                 else:

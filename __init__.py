@@ -181,6 +181,14 @@ class BakeLabProperties(PropertyGroup):
     show_bake_settings : BoolProperty(name = '', default = False)
     show_map_settings  : BoolProperty(name = '', default = False)
     show_file_settings : BoolProperty(name = '', default = False)
+    map_preset : EnumProperty(
+            name = 'Preset',
+            items = (
+                ('URP_LIT',          'Unity URP Lit', ''),
+                ('URP_LIT_EMISSION', 'Unity URP Lit (Emission)', '')
+            ),
+            default = 'URP_LIT'
+        )
     
     apply_only_selected : BoolProperty(
         name = 'Apply only to Selected',
@@ -243,6 +251,7 @@ classes = (
     bakelab_post.BakeLab_ApplyDisplace,
     bakelab_post.BakeLab_Finish,
     bakelab_map.BakeLabMap,
+    bakelab_map.BakeLabApplyMapPreset,
     bakelab_map.BakeLabAddMapItem,
     bakelab_map.BakeLabRemoveMapItem,
     bakelab_map.BakeLabMapListUI,

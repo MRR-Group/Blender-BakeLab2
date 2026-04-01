@@ -79,6 +79,10 @@ class BakeLabUI(Panel):
                 layout.label(text = "")
             col = layout.column()
             col.label(text = "Maps:")
+            row = col.row(align = True)
+            row.prop(props, "map_preset", text = "Preset")
+            op = row.operator("bakelab.apply_map_preset", text = "Apply")
+            op.preset = props.map_preset
             box = col.box()
             col = box.column(align = True)
             row = col.split(align = True)
@@ -165,6 +169,9 @@ class BakeLabUI(Panel):
                     )
                     col.prop(item, 'color_space')
                     col.prop(item, "deep_search")
+
+                if item.type == 'Smoothness':
+                    col.prop(item, "pack_smoothness")
                 
                 if item.type == 'Displacement':
                     if not item.float_depth:

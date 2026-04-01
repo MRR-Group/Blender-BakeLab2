@@ -23,6 +23,7 @@ class BakeLabMap(PropertyGroup):
                     ('Normal',      'Normal',''),
                     ('Glossy',      'Glossy',''),
                     ('Roughness',   'Roughness',''),
+                    ('Smoothness',  'Smoothness',''),
                     ('Emission',    'Emission',''),
                     ('Diffuse',     'Diffuse',''),
                     ('Transmission','Transmission',''),
@@ -42,6 +43,11 @@ class BakeLabMap(PropertyGroup):
         name = 'Deep Search',
         description = 'Search inside of node groups',
         default = True
+    )
+    pack_smoothness : BoolProperty(
+        name = 'Pack to Metallic Alpha',
+        description = 'Pack smoothness into Metallic map alpha channel',
+        default = False
     )
     
     img_name : StringProperty(name = 'Image name', default = '*')
@@ -203,6 +209,7 @@ class BakeLabAddMapItem(bpy.types.Operator):
                     ('Normal',      'Normal',''),
                     ('Glossy',      'Glossy',''),
                     ('Roughness',   'Roughness',''),
+                    ('Smoothness',  'Smoothness',''),
                     ('Emission',    'Emission',''),
                     ('Diffuse',     'Diffuse',''),
                     ('Transmission','Transmission',''),
@@ -337,6 +344,10 @@ class BakeLabAddMapItem(bpy.types.Operator):
             item.img_name = '*_r'
             item.samples  = 4
             item.color_space = 'Non-Color'
+        if self.type == 'Smoothness':
+            item.img_name = '*_sm'
+            item.samples  = 4
+            item.color_space = 'Non-Color'
         if self.type == 'Diffuse':
             item.img_name = '*_d'
             item.samples  = 8
@@ -445,6 +456,67 @@ class BakeLabRemoveMapItem(bpy.types.Operator):
         context.scene.BakeLabMaps.remove(context.scene.BakeLabMapIndex)
         context.scene.BakeLabMapIndex = max(context.scene.BakeLabMapIndex - 1,0)
         context.scene.BakeLabMapIndex = min(context.scene.BakeLabMapIndex, len(context.scene.BakeLabMaps))
+        return {'FINISHED'}
+
+class BakeLabApplyMapPreset(Operator):
+    """Apply map preset"""
+    bl_idname = "bakelab.apply_map_preset"
+    bl_label = "Apply Map Preset"
+    bl_options = {'REGISTER','UNDO'}
+
+    preset : EnumProperty(
+        name = 'Preset',
+        items = (
+            ('URP_LIT',          'Unity URP Lit', ''),
+            ('URP_LIT_EMISSION', 'Unity URP Lit (Emission)', '')
+        ),
+        default = 'URP_LIT'
+    )
+
+    def add_map(self, scene, map_type, name, samples, color_space = None):
+        item = scene.BakeLabMaps.add()
+        item.type = map_type
+        item.img_name = name
+        item.samples = samples
+        if color_space is not None:
+            item.color_space = color_space
+        return item
+
+    def add_custom_map(self, scene, pass_name, name, samples, color_space = 'Non-Color'):
+        item = scene.BakeLabMaps.add()
+        item.type = 'CustomPass'
+        item.pass_name = pass_name
+        item.img_name = name
+        item.samples = samples
+        item.color_space = color_space
+        return item
+
+    def execute(self, context):
+        scene = context.scene
+        if context.area and context.area.type == 'VIEW_3D':
+            context.area.tag_redraw()
+
+        scene.BakeLabMaps.clear()
+
+        self.add_map(scene, 'Albedo', '*_BaseMap', 4, 'sRGB')
+
+        smoothness = self.add_map(scene, 'Smoothness', '*_Smoothness', 4, 'Non-Color')
+        smoothness.pack_smoothness = True
+
+        metallic = self.add_custom_map(scene, 'Metallic', '*_Metallic', 4, 'Non-Color')
+        metallic.file_format = 'PNG'
+        metallic.png_channels = 'RGBA'
+
+        normal = self.add_map(scene, 'Normal', '*_Normal', 16, 'Non-Color')
+        normal.aa_override = 1
+
+        height = self.add_map(scene, 'Displacement', '*_Height', 4, 'Non-Color')
+        occlusion = self.add_map(scene, 'AO', '*_Occlusion', 64, 'Non-Color')
+
+        if self.preset == 'URP_LIT_EMISSION':
+            self.add_map(scene, 'Emission', '*_Emission', 4, 'Non-Color')
+
+        scene.BakeLabMapIndex = max(len(scene.BakeLabMaps) - 1, 0)
         return {'FINISHED'}
     
 class BakeLabShowPassPresets(Operator):
