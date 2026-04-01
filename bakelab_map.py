@@ -25,7 +25,6 @@ class BakeLabMap(PropertyGroup):
                     ('Roughness',   'Roughness',''),
                     ('Emission',    'Emission',''),
                     ('Diffuse',     'Diffuse',''),
-                    ('Subsurface',  'Subsurface',''),
                     ('Transmission','Transmission',''),
                     ('Shadow',      'Shadow',''),
                     ('Environment', 'Environment',''),
@@ -206,7 +205,6 @@ class BakeLabAddMapItem(bpy.types.Operator):
                     ('Roughness',   'Roughness',''),
                     ('Emission',    'Emission',''),
                     ('Diffuse',     'Diffuse',''),
-                    ('Subsurface',  'Subsurface',''),
                     ('Transmission','Transmission',''),
                     ('Shadow',      'Shadow',''),
                     ('Environment', 'Environment',''),
@@ -354,9 +352,6 @@ class BakeLabAddMapItem(bpy.types.Operator):
         if self.type == 'Environment':
             item.img_name = '*_env'
             item.samples  = 16
-        if self.type == 'Subsurface':
-            item.img_name = '*_sss'
-            item.samples  = 64
         if self.type == 'CustomPass':
             item.img_name = '*_pass'
             item.samples  = 4

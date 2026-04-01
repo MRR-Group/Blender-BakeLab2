@@ -68,6 +68,9 @@ class BakeLab_GenerateMaterials(Operator):
                 imgNode.hide = True
                 imgNode.location = -1000, 300
                 imgNode.image = bake_image
+                imgNode.image.source = 'FILE'
+                imgNode.image.alpha_mode = 'PREMUL'
+                imgNode.image.colorspace_settings.name = 'Linear'
                 EmitNode = nodes.new(type = 'ShaderNodeEmission')
                 EmitNode.location = -400, 300
                 EmitNode.width = pbr.width
@@ -196,8 +199,8 @@ class BakeLab_GenerateMaterials(Operator):
                 if obj == None:
                     continue
                 
-                #if 'Normal' in self.baked_types:
-                #    obj.data.use_auto_smooth = False
+                if 'Normal' in self.baked_types:
+                    obj.data.use_auto_smooth = False
                 
                 if props.apply_only_selected:
                     if obj not in selected_objects:
