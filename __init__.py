@@ -172,7 +172,6 @@ class BakeLabProperties(PropertyGroup):
                 default=expanduser("~"),
                 name="Folder",
                 subtype="DIR_PATH",
-                update=updateSavePath
             )
     show_bake_settings : BoolProperty(name = '', default = False)
     show_map_settings  : BoolProperty(name = '', default = False)
