@@ -1,28 +1,57 @@
-name: Blender Addon Build
+name: Blender Addon Build & Release
 
 on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
-  workflow_dispatch:  # Enables manual triggering
+
+permissions:
+  contents: write
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # Use ubuntu-latest or windows-latest as needed
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.value }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Read add-on version
+        id: version
+        shell: bash
+        run: |
+          value=$(python - <<'PY'
+          import re
+          from pathlib import Path
 
+          text = Path('__init__.py').read_text(encoding='utf-8')
+          match = re.search(r"\"version\"\s*:\s*\((\d+)\s*,\s*(\d+)\s*,\s*(\d+)\)", text)
+          if not match:
+              raise SystemExit('Could not find bl_info version in __init__.py')
+          print(f"{match.group(1)}.{match.group(2)}.{match.group(3)}")
+          PY
+          )
+          echo "value=$value" >> $GITHUB_OUTPUT
+          
       - name: Blender Addon Build
-        uses: blenderkit/blender-addon-build@main
+        uses: BlenderKit/blender-addon-build@main
         with:
-          name: 'Blender FastHenry'
+          name: ${{ github.event.repository.name }}
           name-suffix: 'none'
           build-command: ''
           build-location: './'
-          do-checkout: 'true'
-          exclude-files: '.git;.github;.gitignore;docs;README.md;demos'
+          do-checkout: 'false'
+          exclude-files: '.git;.github;.gitignore;README.md;docs;demos'
+
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Blender Addon Release
+        uses: BlenderKit/blender-addon-release@main
+        with:
+          artifact_name: ${{ github.event.repository.name }}
+          release_name: BakeLab
+          version: ${{ needs.build.outputs.version }}
+          release_stage: gold
