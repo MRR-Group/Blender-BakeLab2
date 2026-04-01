@@ -112,7 +112,6 @@ class BakeLabUI(Panel):
                         'Diffuse',
                         'Glossy',
                         'Transmission',
-                        'Subsurface',
                         'Normal'
                     }:
                         row = box.row()
@@ -140,8 +139,7 @@ class BakeLabUI(Panel):
                         if item.type in {
                             'Diffuse',
                             'Glossy',
-                            'Transmission',
-                            'Subsurface'
+                            'Transmission'
                         }:
                             row = box.row(align = True)
                             row.use_property_split = False
@@ -274,6 +272,10 @@ class BakeLabUI(Panel):
                 layout.prop(props, "apply_only_selected")
                 layout.prop(props, "make_single_user")
                 layout.operator("bakelab.generate_mats", icon='MATERIAL')
+                layout.operator("bakelab.preview_mats", icon='HIDE_OFF')
+                row = layout.row()
+                row.enabled = bool(scene.BakeLab_MatBackup)
+                row.operator("bakelab.restore_mats", icon='LOOP_BACK')
                 layout.operator("bakelab.apply_ao", icon='SHADING_RENDERED')
                 layout.operator("bakelab.apply_displace", icon='RNDCURVE')
                 layout.separator()

@@ -27,6 +27,19 @@ class BakeMapData(PropertyGroup):
         type=bpy.types.Image
     )
 
+class BakeMatSlotData(PropertyGroup):
+    material : PointerProperty(
+        type=bpy.types.Material
+    )
+
+class BakeObjMatData(PropertyGroup):
+    obj : PointerProperty(
+        type=bpy.types.Object
+    )
+    slots : CollectionProperty(
+        type=BakeMatSlotData
+    )
+
 class BakeLab_BakedData(PropertyGroup):
     obj_list : CollectionProperty(
         type=BakeObjData

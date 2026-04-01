@@ -192,6 +192,10 @@ class BakeLabProperties(PropertyGroup):
         description = 'Make data single user',
         default = True
     )
+    preview_applied : BoolProperty(
+        name = 'Preview applied',
+        default = False
+    )
     # Display
     baking_obj_count : IntProperty(
             name = 'Baking object count',
@@ -233,6 +237,8 @@ classes = (
     bakelab_uv.Unwrapper,
     bakelab_uv.ClearUV,
     bakelab_post.BakeLab_GenerateMaterials,
+    bakelab_post.BakeLab_PreviewMaterials,
+    bakelab_post.BakeLab_RestoreMaterials,
     bakelab_post.BakeLab_ApplyAO,
     bakelab_post.BakeLab_ApplyDisplace,
     bakelab_post.BakeLab_Finish,
@@ -242,6 +248,8 @@ classes = (
     bakelab_map.BakeLabMapListUI,
     bakelab_baked_data.BakeObjData,
     bakelab_baked_data.BakeMapData,
+    bakelab_baked_data.BakeMatSlotData,
+    bakelab_baked_data.BakeObjMatData,
     bakelab_baked_data.BakeLab_BakedData,
     bakelab_map.BakeLabShowPassPresets,
     bakelab_ui.BakeLabUI
@@ -254,10 +262,12 @@ def register():
     bpy.types.Scene.BakeLabProps = PointerProperty(type = BakeLabProperties)
     bpy.types.Scene.BakeLabMaps = CollectionProperty(type = bakelab_map.BakeLabMap)
     bpy.types.Scene.BakeLab_Data = CollectionProperty(type = bakelab_baked_data.BakeLab_BakedData)
+    bpy.types.Scene.BakeLab_MatBackup = CollectionProperty(type = bakelab_baked_data.BakeObjMatData)
     bpy.types.Scene.BakeLabMapIndex = IntProperty(name = 'BakeLab Map List Index')
 
 def unregister():
     del bpy.types.Scene.BakeLabMapIndex
+    del bpy.types.Scene.BakeLab_MatBackup
     del bpy.types.Scene.BakeLab_Data
     del bpy.types.Scene.BakeLabMaps
     del bpy.types.Scene.BakeLabProps 

@@ -21,6 +21,34 @@ class BakeLab_GenerateMaterials(Operator):
     bl_idname = "bakelab.generate_mats"
     bl_label = "Generate Materials"
     bl_options = {'REGISTER','UNDO'}
+
+    def collect_target_objects(self, baked_data, props, selected_objects):
+        targets = []
+        seen = set()
+        for data in baked_data:
+            if data == None:
+                continue
+            for objData in data.obj_list:
+                obj = objData.obj
+                if obj == None:
+                    continue
+                if props.apply_only_selected:
+                    if obj not in selected_objects:
+                        continue
+                if obj.name not in seen:
+                    targets.append(obj)
+                    seen.add(obj.name)
+        return targets
+
+    def backup_materials(self, context, objects):
+        scene = context.scene
+        scene.BakeLab_MatBackup.clear()
+        for obj in objects:
+            item = scene.BakeLab_MatBackup.add()
+            item.obj = obj
+            for slot in obj.material_slots:
+                slot_item = item.slots.add()
+                slot_item.material = slot.material
             
     def generate_mat(self, bakeMapData, name):
         new_mat = bpy.data.materials.new(name+'_BAKED')
@@ -172,6 +200,8 @@ class BakeLab_GenerateMaterials(Operator):
     
     def execute(self, context):
         props = context.scene.BakeLabProps
+        context.scene.BakeLab_MatBackup.clear()
+        props.preview_applied = False
         active_obj = context.active_object
         selected_objects = context.selected_objects
         baked_data = context.scene.BakeLab_Data
@@ -220,6 +250,61 @@ class BakeLab_GenerateMaterials(Operator):
         else:
             self.report(type = {'ERROR'}, message = 'No valid baked images to create materials')
             return {'CANCELLED'}
+
+class BakeLab_PreviewMaterials(BakeLab_GenerateMaterials):
+    """Preview baked materials and allow restore"""
+    bl_idname = "bakelab.preview_mats"
+    bl_label = "Preview Materials"
+    bl_options = {'REGISTER','UNDO'}
+
+    def execute(self, context):
+        props = context.scene.BakeLabProps
+        selected_objects = context.selected_objects
+        baked_data = context.scene.BakeLab_Data
+
+        targets = self.collect_target_objects(baked_data, props, selected_objects)
+        if len(targets) == 0:
+            self.report(type = {'ERROR'}, message = 'No valid objects to preview materials')
+            return {'CANCELLED'}
+
+        self.backup_materials(context, targets)
+        result = super().execute(context)
+        if result == {'FINISHED'}:
+            props.preview_applied = True
+        else:
+            context.scene.BakeLab_MatBackup.clear()
+            props.preview_applied = False
+        return result
+
+class BakeLab_RestoreMaterials(Operator):
+    """Restore materials from preview"""
+    bl_idname = "bakelab.restore_mats"
+    bl_label = "Restore Materials"
+    bl_options = {'REGISTER','UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        return bool(context.scene.BakeLab_MatBackup)
+
+    def execute(self, context):
+        props = context.scene.BakeLabProps
+        active_obj = context.active_object
+        selected_objects = context.selected_objects
+        for backup in context.scene.BakeLab_MatBackup:
+            obj = backup.obj
+            if obj == None:
+                continue
+            SelectObject(obj)
+            while len(obj.material_slots) < len(backup.slots):
+                bpy.ops.object.material_slot_add()
+            for i, slot_data in enumerate(backup.slots):
+                if i < len(obj.material_slots):
+                    obj.material_slots[i].material = slot_data.material
+
+        SelectObjects(active_obj, selected_objects)
+        context.scene.BakeLab_MatBackup.clear()
+        props.preview_applied = False
+        return {'FINISHED'}
     
 class BakeLab_ApplyAO(Operator):
     """Add ambient occlusion materials"""
@@ -387,5 +472,7 @@ class BakeLab_Finish(Operator):
     def execute(self, context):
         props = context.scene.BakeLabProps
         context.scene.BakeLab_Data.clear()
+        context.scene.BakeLab_MatBackup.clear()
+        props.preview_applied = False
         props.bake_state = 'NONE'
         return {'FINISHED'}
